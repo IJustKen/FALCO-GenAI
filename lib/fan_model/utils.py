@@ -75,8 +75,8 @@ def transform(point, center, scale, resolution, invert=False):
 
     h = 200.0 * scale
     t = torch.eye(3)
-    t[0, 0] = resolution / h
-    t[1, 1] = resolution / h
+    t[0, 0] = float(resolution / h)
+    t[1, 1] = float(resolution / h)
     t[0, 2] = resolution * (-center[0] / h + 0.5)
     t[1, 2] = resolution * (-center[1] / h + 0.5)
 

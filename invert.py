@@ -58,6 +58,7 @@ def main():
     parser.add_argument('--dataset', type=str, required=True, choices=DATASETS.keys(), help="choose real dataset")
     parser.add_argument('--dataset-root', type=str, help="set dataset root directory")
     parser.add_argument('--batch-size', type=int, default=4, help="set generation batch size")
+    parser.add_argument('--max-images', type=int, default=None)
     parser.add_argument('--save-aligned-images', dest='save_aligned_images', action='store_true',
                         help="save aligned images")
     parser.add_argument('--dont-save-aligned-images', dest='save_aligned_images', action='store_false',
@@ -163,6 +164,8 @@ def main():
     ####################################################################################################################
     if args.dataset == 'celebahq':
         dataset = CelebAHQ(root_dir=args.dataset_root, subset='train+val+test')
+        if args.max_images is not None:
+            dataset = torch.utils.data.Subset(dataset, range(min(args.max_images, len(dataset))))
         dataloader = data.DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=False)
 
         # Create output directory to save images
@@ -196,7 +199,7 @@ def main():
             tqdm(dataloader, desc="#. Process {} images".format(args.dataset) if args.verbose else '')):
 
         aligned_images = []
-        for i in range(args.batch_size):
+        for i in range(len(data_batch[2])):
 
             ############################################################################################################
             ##                                    [ Face alignment and crop ]                                         ##
@@ -220,7 +223,7 @@ def main():
         image_latent_codes = get_latents(e4e, aligned_images)
 
         # Save latent codes
-        for i in range(args.batch_size):
+        for i in range(len(data_batch[2])):
             img_latent_code_file = osp.join(out_codes_dir, '{}.pt'.format(get_img_id(data_batch[2][i])))
             torch.save(image_latent_codes[i], img_latent_code_file)
 
@@ -234,7 +237,7 @@ def main():
         ##                        [ Save reconstructed images (using inverted latent codes) ]                         ##
         ################################################################################################################
         if args.save_reconstructed_images:
-            for i in range(args.batch_size):
+            for i in range(len(data_batch[2])):
                 img_recon_file = osp.join(out_data_dir, '{}_recon.jpg'.format(get_img_id(data_batch[2][i])))
                 tensor2image(img_recon[i].cpu(), adaptive=True).save(
                     img_recon_file, "JPEG", quality=90, subsampling=0, progressive=True)

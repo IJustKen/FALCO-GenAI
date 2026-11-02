@@ -43,6 +43,7 @@ def main():
     parser.add_argument('--dataset', type=str, required=True, choices=DATASETS.keys(), help="choose real dataset")
     parser.add_argument('--dataset-root', type=str, help="set dataset root directory")
     parser.add_argument('--batch-size', type=int, default=128, help="set batch size")
+    parser.add_argument('--max-images', type=int, default=None, help="maximum number of images to process")
     parser.add_argument('--no-clip', action='store_true', help="do NOT extract CLIP features")
     parser.add_argument('--no-farl', action='store_true', help="do NOT extract FaRL features")
     parser.add_argument('--no-dino', action='store_true', help="do NOT extract DINO features")
@@ -201,6 +202,10 @@ def main():
     ####################################################################################################################
     if args.dataset == 'celebahq':
         dataset = CelebAHQ(root_dir=args.dataset_root, subset='train+val+test')
+
+        if args.max_images is not None:
+            dataset = torch.utils.data.Subset(dataset, range(min(args.max_images, len(dataset))))
+
         dataloader = data.DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=False)
 
     ####################################################################################################################

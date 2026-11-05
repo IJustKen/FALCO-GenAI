@@ -7,6 +7,7 @@ falco-venv/
 __pycache__/
 */__pycache__/
 models/pretrained/
+models/
 datasets/
 experiments/
 visualization/

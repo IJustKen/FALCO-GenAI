@@ -34,7 +34,7 @@ class LatentCode(nn.Module):
         if self.latent_space == 'W+':
 
             self.layer_start = 3
-            self.layer_end = 12
+            self.layer_end = 8
 
             self.nontrainable_layers_start = nn.Parameter(data=self.latent_code_real[:, :self.layer_start, :],
                                                           requires_grad=False)

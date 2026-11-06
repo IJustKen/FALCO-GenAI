@@ -123,7 +123,7 @@ class CelebAHQ(data.Dataset):
                 self.nn_map_dict = json.load(f)
 
     def __len__(self):
-        return 100
+        return 5
 
     def __getitem__(self, index):
         """TODO: +++ CelebA-HQ getitem function

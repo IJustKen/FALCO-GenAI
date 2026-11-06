@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from train_flow import FlowMLP 
+from endterm.training.train_flow import FlowMLP 
 
 class FlowPriorSampler:
     def __init__(self, checkpoint_path, device='cuda'):

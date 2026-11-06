@@ -5,7 +5,7 @@ from lib import AttrLoss
 from models.load_generator import load_generator
 import sys
 
-def generate_flow_dataset(save_path, num_samples=10, batch_size=8):
+def generate_flow_dataset(save_path, num_samples=10000, batch_size=8):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     print("Loading StyleGAN2...")

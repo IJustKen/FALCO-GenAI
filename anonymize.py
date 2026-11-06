@@ -8,7 +8,11 @@ from lib import DATASETS, CelebAHQ, DataParallelPassthrough, IDLoss, AttrLoss, L
 from models.load_generator import load_generator
 from tqdm import tqdm
 import json
+from pathlib import Path
+import csv
+import time
 
+ROOT = Path(__file__).resolve().parent
 
 def main():
     """Anonymize the images of a given real dataset.
@@ -73,6 +77,10 @@ def main():
     ####################################################################################################################
     args_dict = args.__dict__.copy()
     out_dir = anon_exp_dir(args_dict)
+
+    log_dir = ROOT / "logs" / f"m_{args.id_margin}"
+    os.makedirs(log_dir, exist_ok=True)
+
     if args.verbose:
         print("#. Create dir for storing the anonymized {} dataset...".format(args.dataset))
         print("  \\__{}".format(out_dir))
@@ -108,6 +116,18 @@ def main():
     # Build GAN generator model and load with pre-trained weights
     if args.verbose:
         print("#. Build StyleGAN2 generator model G and load with pre-trained weights...")
+
+
+
+    # Create log file and write headers
+    log_file = osp.join(log_dir, "convergence_log_knn.csv")
+    with open(log_file, mode='w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['img_id', 'epoch', 'arcface_cos', 'id_loss', 'att_loss', 'wall_clock_time'])
+    
+    # Define which epochs to track
+    # Note: args.epochs is usually 50, so the last epoch is 49.
+    track_epochs = {0, 5, 10, 25, args.epochs - 1}
 
     G = load_generator(model_name='stylegan2_ffhq1024', latent_is_w=True, verbose=args.verbose).eval().to(device)
 
@@ -179,8 +199,8 @@ def main():
         # print("latent_code_trainable_parameters: {}".format(latent_code_trainable_parameters))
 
         # Check whether anonymization latent code has already been optimized -- if so, continue with the next one
-        if not latent_code.do_optim():
-            continue
+        # if not latent_code.do_optim():
+        #     continue
 
         # Build optimizer
         optimizer = None
@@ -199,8 +219,10 @@ def main():
         id_criterion.zero_grad()
         attribute_loss.zero_grad()
 
+        start_time = time.time()
         # Training (anonymization) loop for the current batch of images / latent codes
         for epoch in range(args.epochs):
+            #print(epoch)
             # Clear gradients wrt parameters
             optimizer.zero_grad()
 
@@ -213,6 +235,31 @@ def main():
 
             # Calculate total loss
             loss = args.lambda_id * id_loss + args.lambda_attr * att_loss
+
+            if epoch in track_epochs:
+                print(f"saving epoch {epoch}")
+                current_time = time.time() - start_time
+                            
+                # Calculate the ArcFace cosine similarity
+                with torch.no_grad():
+                # Use their exact transforms and feature extractor
+                    feat_orig = id_criterion.extract_feats(id_criterion.id_transform(img_orig.to(device)))
+                    feat_anon = id_criterion.extract_feats(id_criterion.id_transform(img_anon.to(device)))
+                                
+                    # Compute cosine similarity safely 
+                    import torch.nn.functional as F
+                    arcface_cos = F.cosine_similarity(feat_anon, feat_orig).item()
+                            
+                with open(log_file, mode='a', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        img_orig_id, 
+                        epoch, 
+                        f"{arcface_cos:.4f}", 
+                        f"{id_loss.item():.4f}", 
+                        f"{att_loss.item():.4f}", 
+                        f"{current_time:.4f}"
+                    ])
 
             # Back-propagation
             loss.backward()

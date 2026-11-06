@@ -10,3 +10,5 @@ models/pretrained/
 datasets/
 experiments/
 visualization/
+endterm/checkpoints/
+endterm/data/
